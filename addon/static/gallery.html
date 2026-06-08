@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; color: #eee; font-family: -apple-system, sans-serif; padding: 16px; }
+  h1 { font-size: 18px; font-weight: 300; margin-bottom: 16px; color: rgba(255,255,255,0.8); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+  .thumb { aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: #16213e; cursor: pointer; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
+  .thumb img:active { transform: scale(0.95); }
+  .count { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
+  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 100; align-items: center; justify-content: center; }
+  .modal.active { display: flex; }
+  .modal img { max-width: 95%; max-height: 90vh; object-fit: contain; }
+  .modal .close { position: absolute; top: 16px; right: 20px; color: white; font-size: 28px; cursor: pointer; }
+</style>
+</head>
+<body>
+  <h1>Cloud Photos</h1>
+  <div class="count" id="count"></div>
+  <div class="grid" id="grid"></div>
+  <div class="modal" id="modal">
+    <span class="close" onclick="document.getElementById('modal').classList.remove('active')">&times;</span>
+    <img id="modalImg">
+  </div>
+<script>
+fetch('/local/cloud_photos/_image_list.json?t=' + Date.now())
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('count').textContent = data.count + ' photos';
+    const grid = document.getElementById('grid');
+    data.images.forEach(url => {
+      const div = document.createElement('div');
+      div.className = 'thumb';
+      const img = document.createElement('img');
+      img.src = url;
+      img.loading = 'lazy';
+      img.onclick = () => {
+        document.getElementById('modalImg').src = url;
+        document.getElementById('modal').classList.add('active');
+      };
+      div.appendChild(img);
+      grid.appendChild(div);
+    });
+  });
+document.getElementById('modal').onclick = (e) => {
+  if (e.target === document.getElementById('modal')) {
+    document.getElementById('modal').classList.remove('active');
+  }
+};
+</script>
+</body>
+</html>

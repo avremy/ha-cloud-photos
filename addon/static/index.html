@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cloud Photos</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f4f6f8; --fg: #1f2933; --muted: #5c6b7a;
+    --card: #ffffff; --border: #d8dde3;
+    --accent: #03a9f4; --accent-fg: #fff;
+    --ok: #2e7d32; --err: #c62828; --warn: #ef6c00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1e22; --fg: #e6e9ed; --muted: #9aa5b1;
+      --card: #2a2d33; --border: #3a3f47;
+    }
+  }
+  * { box-sizing: border-box }
+  body {
+    margin: 0; padding: 16px;
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--fg);
+  }
+  .card {
+    max-width: 600px; margin: 12px auto; padding: 22px;
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  }
+  h1 { font-size: 19px; margin: 0 0 6px }
+  h2 { font-size: 14px; margin: 24px 0 8px; color: var(--muted); font-weight: 600;
+       text-transform: uppercase; letter-spacing: .05em }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px }
+  .row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap }
+  button {
+    background: var(--accent); color: var(--accent-fg);
+    border: 0; padding: 11px 18px; border-radius: 10px;
+    font-size: 15px; cursor: pointer; font-weight: 500;
+  }
+  button:disabled { opacity: .4; cursor: not-allowed }
+  button.secondary {
+    background: transparent; color: var(--fg); border: 1px solid var(--border);
+  }
+  button.danger { background: var(--err) }
+  .status {
+    padding: 12px 14px; background: var(--bg); border: 1px solid var(--border);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .status .label { color: var(--muted); font-size: 12px; text-transform: uppercase;
+                   letter-spacing: .05em; margin-bottom: 4px }
+  .status .value { font-weight: 500 }
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .05em;
+  }
+  .ok  { color: var(--ok) }
+  .err { color: var(--err) }
+  .warn { color: var(--warn) }
+  iframe.icloud {
+    width: 100%; height: 480px; border: 1px solid var(--border);
+    border-radius: 10px; background: #fff;
+  }
+  .muted { color: var(--muted); font-size: 13px }
+  details summary { cursor: pointer; color: var(--muted); font-size: 13px }
+  details.help {
+    margin: 12px 0; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  }
+  details.help[open] summary { margin-bottom: 4px }
+  details.help summary { color: var(--fg); font-size: 14px }
+  details.help ol { margin: 8px 0 }
+  .hidden { display: none !important }
+  .log {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px;
+    max-height: 200px; overflow: auto;
+    font-family: ui-monospace, monospace; font-size: 11px;
+    white-space: pre-wrap; word-break: break-all;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Cloud Photos</h1>
+  <p class="sub">Manage the iCloud Photos album that feeds your slideshow.</p>
+
+  <div class="status">
+    <div class="label">Session</div>
+    <div class="value" id="session-status">checking…</div>
+  </div>
+
+  <h2>Sync</h2>
+  <div class="row">
+    <button id="btn-sync">Sync now</button>
+    <button id="btn-reset" class="secondary">Full reset (re-download all)</button>
+  </div>
+  <p id="sync-msg" class="muted"></p>
+
+  <details id="log-details" open style="margin-top: 8px">
+    <summary><strong>Sync log</strong> <span id="log-status" class="muted"></span></summary>
+    <div id="sync-log" class="log" style="max-height: 320px; margin-top: 8px">(loading…)</div>
+  </details>
+
+  <h2>Re-authenticate iCloud</h2>
+  <p class="sub">
+    Used when iCloud asks for a fresh login (about every 30 days, or after a
+    password change). Clicking the button below launches iCloud's own
+    authenticator inside this page &mdash; enter your <strong>Apple ID password</strong>
+    (not an app-specific password) and the 6-digit code Apple pushes to your
+    trusted device.
+  </p>
+
+  <details class="help">
+    <summary><strong>Help &mdash; code not arriving on my iPhone?</strong></summary>
+    <p class="muted" style="margin-top: 10px">
+      Apple changed something with iOS 26.4 that breaks the usual 2FA push
+      to iPhones when icloudpd asks for it. Workaround:
+    </p>
+    <ol class="muted" style="line-height: 1.7; padding-left: 20px">
+      <li>On your iPhone, swipe down from the top-right to open Control Center</li>
+      <li>Turn on <strong>Airplane Mode</strong> (and turn Wi-Fi off too if it stays on)</li>
+      <li>Open <strong>Settings &rarr; [your name] &rarr; Sign-In &amp; Security</strong></li>
+      <li>Tap <strong>Get Verification Code</strong> &mdash; a 6-digit code appears</li>
+      <li>Enter that code into the iCloud authenticator above and submit</li>
+      <li>Once authenticated, turn Airplane Mode back off</li>
+    </ol>
+    <p class="muted">
+      The "Get Verification Code" option only appears when the iPhone is
+      offline &mdash; that's why airplane mode is required.
+      <a href="https://github.com/icloud-photos-downloader/icloud_photos_downloader/issues/1322"
+         target="_blank" rel="noopener">More background on this Apple bug</a>.
+    </p>
+  </details>
+
+  <div id="auth-controls" class="row">
+    <button id="btn-start">Start re-authentication</button>
+    <button id="btn-cancel" class="secondary hidden">Cancel</button>
+  </div>
+
+  <div id="auth-frame-wrap" class="hidden" style="margin-top:12px">
+    <iframe class="icloud" id="auth-frame" src="about:blank"
+            title="iCloud Authenticator"></iframe>
+    <p class="muted">When you see "Authentication successful" above (and the session pill goes green), you can close this and run a sync.</p>
+  </div>
+
+  <div id="auth-done" class="hidden" style="margin-top:12px">
+    <p id="done-msg"></p>
+  </div>
+
+  <details style="margin-top: 16px">
+    <summary>Show technical log</summary>
+    <div id="log" class="log">(no output yet)</div>
+  </details>
+</div>
+
+<script>
+// All endpoints are RELATIVE → through HA ingress they route back to this add-on.
+const $ = (id) => document.getElementById(id);
+const sessionStatus = $('session-status'), logEl = $('log');
+const btnStart = $('btn-start'), btnCancel = $('btn-cancel'),
+      btnSync = $('btn-sync'), btnReset = $('btn-reset');
+const frameWrap = $('auth-frame-wrap'), frame = $('auth-frame'),
+      doneBox = $('auth-done'), doneMsg = $('done-msg'),
+      syncMsg = $('sync-msg');
+
+let pollTimer = null;
+
+async function call(path, opts = {}) {
+  // Strip leading '/' so paths resolve relative to the page's URL
+  // (HA ingress prefixes us with /api/hassio_ingress/<token>/ — relative wins).
+  const rel = path.startsWith('/') ? path.slice(1) : path;
+  const r = await fetch(rel, { headers: {'Content-Type':'application/json'}, ...opts });
+  let body = {};
+  try { body = await r.json() } catch {}
+  return { ok: r.ok, status: r.status, body };
+}
+
+function renderStatus(h) {
+  const cookieOK = h.session_cookie_present;
+  const webuiUp  = h.icloudpd_webui_alive;
+  let pill, msg;
+  if (h.auth_state === 'running' && webuiUp) {
+    pill = '<span class="pill" style="background:var(--accent);color:var(--accent-fg)">Authenticating</span>';
+    msg = 'icloudpd web authenticator is running — enter your password and 2FA code in the frame below.';
+  } else if (h.auth_state === 'success' || cookieOK) {
+    pill = '<span class="pill" style="background:var(--ok);color:#fff">Authenticated</span>';
+    msg = 'Session cookie present. Slideshow sync should work.';
+  } else if (h.auth_state === 'error') {
+    pill = '<span class="pill" style="background:var(--err);color:#fff">Failed</span>';
+    msg = 'Auth failed. Click Re-authenticate to retry.';
+  } else {
+    pill = '<span class="pill" style="background:var(--err);color:#fff">Not authenticated</span>';
+    msg = 'No session cookie. Click Re-authenticate to sign in.';
+  }
+  sessionStatus.innerHTML = `${pill} <div class="muted" style="margin-top:6px">${msg}</div>
+    <div class="muted" style="margin-top:4px;font-size:11px">v${h.version || '?'} · cookie=${cookieOK?'✓':'✗'} · webui=${webuiUp?'✓':'✗'}</div>`;
+}
+
+function renderLog(lines) {
+  if (!lines || !lines.length) return;
+  logEl.textContent = lines.join('\n');
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function refresh() {
+  const { body } = await call('/health');
+  if (!body) return;
+  // /health doesn't include the log; pull it from /auth/status when relevant
+  if (body.auth_state !== 'idle') {
+    const s = await call('/auth/status');
+    renderLog(s.body.log_tail);
+  }
+  renderStatus(body);
+  // Reveal iframe whenever icloudpd webui is alive AND we're in 'running'
+  if (body.icloudpd_webui_alive && body.auth_state === 'running') {
+    if (frame.dataset.loaded !== '1') {
+      frame.src = './icloud/';      // proxied through us
+      frame.dataset.loaded = '1';
+    }
+    frameWrap.classList.remove('hidden');
+    btnCancel.classList.remove('hidden');
+    btnStart.disabled = true;
+  } else {
+    frameWrap.classList.add('hidden');
+    btnCancel.classList.add('hidden');
+    btnStart.disabled = false;
+    frame.dataset.loaded = '';
+    frame.src = 'about:blank';
+  }
+  // Show success/failure banner
+  if (body.auth_state === 'success') {
+    doneBox.classList.remove('hidden');
+    doneMsg.innerHTML = '<span class="ok">✓ Authentication successful.</span> The session cookie has been written. Try a sync.';
+    stopPolling();
+  } else if (body.auth_state === 'error') {
+    doneBox.classList.remove('hidden');
+    doneMsg.innerHTML = '<span class="err">✗ Authentication failed.</span> Check the technical log below for details, then click Re-authenticate again.';
+    stopPolling();
+  } else {
+    doneBox.classList.add('hidden');
+  }
+}
+
+function startPolling() {
+  if (pollTimer) return;
+  pollTimer = setInterval(refresh, 1500);
+}
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+btnStart.onclick = async () => {
+  btnStart.disabled = true;
+  doneBox.classList.add('hidden');
+  await call('/auth/start', { method: 'POST' });
+  startPolling();
+  refresh();
+};
+
+btnCancel.onclick = async () => {
+  await call('/auth/cancel', { method: 'POST' });
+  stopPolling();
+  setTimeout(refresh, 300);
+};
+
+btnSync.onclick = async () => {
+  btnSync.disabled = true; syncMsg.textContent = 'Sync requested…';
+  const { body } = await call('/sync', { method: 'POST' });
+  syncMsg.textContent = body.status === 'busy'
+      ? 'Busy: ' + (body.running_job || 'another job')
+      : 'Sync started in background (check the slideshow folder).';
+  setTimeout(() => { btnSync.disabled = false }, 1500);
+};
+
+btnReset.onclick = async () => {
+  if (!confirm('Wipe slideshow folder and re-download every photo? This can take a while.')) return;
+  btnReset.disabled = true; syncMsg.textContent = 'Full reset requested…';
+  const { body } = await call('/reset', { method: 'POST' });
+  syncMsg.textContent = body.status === 'busy'
+      ? 'Busy: ' + (body.running_job || 'another job')
+      : 'Full reset started in background.';
+  setTimeout(() => { btnReset.disabled = false }, 1500);
+};
+
+// Sync-log + adaptive polling
+const syncLogEl = $('sync-log');
+const logStatusEl = $('log-status');
+let logPollTimer = null;
+let logPollFast = false;
+let lastLogSig = '';
+
+async function refreshSyncLog() {
+  const { ok, body } = await call('/sync-log?n=300');
+  if (!ok || !body || !body.lines) return;
+  const sig = body.total_lines + ':' + (body.lines[body.lines.length - 1] || '');
+  if (sig !== lastLogSig) {
+    lastLogSig = sig;
+    if (body.lines.length === 0) {
+      syncLogEl.textContent = '(no sync has run yet)';
+    } else {
+      syncLogEl.textContent = body.lines.join('\n');
+      const nearBottom = syncLogEl.scrollHeight - syncLogEl.scrollTop - syncLogEl.clientHeight < 100;
+      if (nearBottom) syncLogEl.scrollTop = syncLogEl.scrollHeight;
+    }
+  }
+  if (body.running_job) {
+    logStatusEl.innerHTML = `<span style="color:var(--warn)">● ${body.running_job} running</span> · ${body.total_lines} lines`;
+  } else {
+    logStatusEl.textContent = `${body.total_lines} lines`;
+  }
+}
+
+function setLogPollSpeed(fast) {
+  if (logPollTimer && fast === logPollFast) return;
+  if (logPollTimer) clearInterval(logPollTimer);
+  logPollFast = fast;
+  logPollTimer = setInterval(refreshSyncLog, fast ? 1500 : 8000);
+  refreshSyncLog();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) { refresh(); refreshSyncLog(); }
+});
+
+// Hook into refresh: when the existing refresh() runs and sees a running job,
+// flip the log to fast polling. This works without wrapping refresh().
+async function adaptiveLogTick() {
+  try {
+    const { body } = await call('/health');
+    setLogPollSpeed(Boolean(body && body.running_job));
+  } catch {}
+}
+
+refresh();
+refreshSyncLog();
+setLogPollSpeed(false);
+// Adaptive ticker: re-check every 4s whether a job is running, and toggle log speed
+setInterval(adaptiveLogTick, 4000);
+adaptiveLogTick();
+// Poll header status every 5s
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

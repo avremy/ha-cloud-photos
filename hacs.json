@@ -1,0 +1,6 @@
+{
+  "name": "Cloud Photos",
+  "render_readme": true,
+  "homeassistant": "2024.1.0",
+  "country": ["IL", "US"]
+}
