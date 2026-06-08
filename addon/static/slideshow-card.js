@@ -1,6 +1,10 @@
-// cloud_photos slideshow card — version: 8
+// cloud_photos slideshow card — version: 9
 // Served by HA from /local/cloud_photos/slideshow-card.js (deployed by the
-// add-on at startup). Register as a Lovelace resource with cache buster ?v=8.
+// add-on at startup). Register as a Lovelace resource with cache buster ?v=1
+// (the URL itself is new at cutover; the cache buster restarts at 1).
+// v9: image list JSON now exposes both `images` (back-compat flat URLs) and
+// `photos` (rich entries with full/thumb/mtime). We continue to read `images`
+// for the slideshow — full-screen display doesn't benefit from thumbnails.
 class SlideshowCard extends HTMLElement {
   set hass(hass) { this._hass = hass; }
 

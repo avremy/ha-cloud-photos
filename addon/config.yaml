@@ -1,5 +1,5 @@
 name: Cloud Photos
-version: "0.1.0"
+version: "0.2.0"
 slug: cloud_photos
 description: Sync photos from cloud providers (iCloud today, more planned) and serve them as a Home Assistant slideshow + gallery.
 arch:

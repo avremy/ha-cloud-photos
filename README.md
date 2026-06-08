@@ -43,6 +43,27 @@ Once enabled, the integration will:
   services that drive the add-on's REST API
 - Surface sensors for last-sync time, photo count, auth state
 
+## Gallery (phase 2)
+
+`addon/static/gallery.html` is a touch-first photo gallery served by the
+add-on at `/local/cloud_photos/gallery.html` (after the deploy hook copies
+it to HA's static dir).
+
+Features:
+- **[PhotoSwipe v5](https://photoswipe.com/)** vendored at
+  `addon/static/vendor/photoswipe/` (no CDN — works on tailnet)
+- **CSS-grid responsive masonry** — column width scales from 110px on phone
+  to 200px on desktop; no JS layout library
+- **Lazy loading** — every thumbnail has `loading="lazy"` and
+  `decoding="async"`
+- **Sticky monthly date headers** — photos grouped by `YYYY-MM` (from
+  mtime), header sticks to top of viewport while scrolling that month
+- **Pre-generated thumbnails** — 600px wide, JPEG q85, stored alongside
+  originals as `<name>_thumb.jpg`. Gallery loads thumbs; PhotoSwipe loads
+  the full image on tap.
+- **🔄 Refresh button** — POSTs `/sync` to the add-on (host port 8099 via
+  host_network), then polls the image list until it updates
+
 ## Image-list generation
 
 The add-on owns its own image-list pipeline now —

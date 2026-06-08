@@ -15,20 +15,27 @@ Idempotent: overwrites on every startup so upgrades pick up the new bytes.
 import os
 import shutil
 
-# Files inside the container's static dir that we deploy to /config/www/cloud_photos/.
-# Add more entries here as new assets are bundled.
+# Top-level files we deploy from /opt/static/ to /config/www/cloud_photos/.
 DEPLOYED_FILES = (
     "gallery.html",
     "slideshow-card.js",
 )
 
+# Whole subtrees we deploy (recursive copy). Used for vendored libraries —
+# PhotoSwipe etc.
+DEPLOYED_DIRS = (
+    "vendor",
+)
+
 
 def deploy(static_dir, target_dir, log):
-    """Copy each DEPLOYED_FILES entry from static_dir to target_dir.
+    """Copy bundled assets from static_dir into target_dir.
 
+    Idempotent: files are overwritten, the vendor dir is fully refreshed.
     `log(msg)` is a callback the caller provides for status logging.
     """
     os.makedirs(target_dir, exist_ok=True)
+
     for name in DEPLOYED_FILES:
         src = os.path.join(static_dir, name)
         dst = os.path.join(target_dir, name)
@@ -40,3 +47,17 @@ def deploy(static_dir, target_dir, log):
             log(f"[deploy] {name} -> {dst}")
         except OSError as e:
             log(f"[deploy] !! {name} failed: {e}")
+
+    for name in DEPLOYED_DIRS:
+        src = os.path.join(static_dir, name)
+        dst = os.path.join(target_dir, name)
+        if not os.path.isdir(src):
+            log(f"[deploy] skip dir {name}: not found in {static_dir}")
+            continue
+        try:
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+            log(f"[deploy] {name}/ -> {dst}/")
+        except OSError as e:
+            log(f"[deploy] !! {name}/ failed: {e}")

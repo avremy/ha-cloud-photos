@@ -1,7 +1,7 @@
 #!/command/with-contenv bash
 set -e
 
-echo "[cloud-photos] starting v0.1.0…"
+echo "[cloud-photos] starting v0.2.0…"
 
 # Token plumbing (supports both old and new supervisor naming)
 if [ -z "${SUPERVISOR_TOKEN:-}" ] && [ -n "${HASSIO_TOKEN:-}" ]; then

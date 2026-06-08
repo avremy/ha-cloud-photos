@@ -1,55 +1,343 @@
 <!DOCTYPE html>
-<html>
+<!--
+  cloud_photos gallery.html — v2 (phase 2)
+  Deployed by the addon to /config/www/cloud_photos/gallery.html.
+  Reachable inside HA at /local/cloud_photos/gallery.html.
+-->
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Cloud Photos</title>
+<link rel="stylesheet" href="/local/cloud_photos/vendor/photoswipe/photoswipe.css?v=1">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #1a1a2e; color: #eee; font-family: -apple-system, sans-serif; padding: 16px; }
-  h1 { font-size: 18px; font-weight: 300; margin-bottom: 16px; color: rgba(255,255,255,0.8); }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-  .thumb { aspect-ratio: 1; overflow: hidden; border-radius: 8px; background: #16213e; cursor: pointer; }
-  .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
-  .thumb img:active { transform: scale(0.95); }
-  .count { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
-  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); z-index: 100; align-items: center; justify-content: center; }
-  .modal.active { display: flex; }
-  .modal img { max-width: 95%; max-height: 90vh; object-fit: contain; }
-  .modal .close { position: absolute; top: 16px; right: 20px; color: white; font-size: 28px; cursor: pointer; }
+  :root {
+    --bg: #0f0f1a;
+    --fg: #eee;
+    --fg-dim: rgba(255,255,255,0.55);
+    --tile-bg: #1c2138;
+    --header-bg: rgba(15, 15, 26, 0.9);
+    --accent: #4a9eff;
+    --gap: 6px;
+    --col: 110px;
+  }
+  @media (min-width: 480px) { :root { --col: 130px; } }
+  @media (min-width: 768px) { :root { --col: 170px; --gap: 8px; } }
+  @media (min-width: 1200px){ :root { --col: 200px; } }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--fg); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  header.top {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--header-bg);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    padding: 14px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+  header.top h1 { font-size: 17px; font-weight: 400; letter-spacing: 0.2px; }
+  header.top .meta { color: var(--fg-dim); font-size: 12px; margin-top: 2px; }
+  .actions { display: flex; gap: 8px; }
+  .btn {
+    background: rgba(255,255,255,0.08);
+    color: var(--fg);
+    border: none;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    font-size: 17px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.15s;
+  }
+  .btn:hover { background: rgba(255,255,255,0.14); }
+  .btn:active { transform: scale(0.92); }
+  .btn[disabled] { opacity: 0.5; cursor: progress; }
+  .btn svg { width: 20px; height: 20px; fill: currentColor; }
+  .btn.spin svg { animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  main { padding: 0 12px 24px; }
+  .group-header {
+    position: sticky;
+    top: 67px;
+    z-index: 3;
+    background: var(--header-bg);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    padding: 14px 4px 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--fg-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--col), 1fr));
+    gap: var(--gap);
+    margin-bottom: 8px;
+  }
+  .tile {
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--tile-bg);
+    cursor: zoom-in;
+    position: relative;
+    display: block;
+  }
+  .tile img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+  }
+  .tile img.loaded { opacity: 1; }
+  .tile:hover img { transform: scale(1.05); }
+  .empty {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--fg-dim);
+    font-size: 14px;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%) translateY(60px);
+    background: rgba(0,0,0,0.85);
+    color: #eee;
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 24px;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* PhotoSwipe theming tweak — match our dark UI */
+  .pswp { --pswp-bg: #0a0a14; }
 </style>
 </head>
 <body>
-  <h1>Cloud Photos</h1>
-  <div class="count" id="count"></div>
-  <div class="grid" id="grid"></div>
-  <div class="modal" id="modal">
-    <span class="close" onclick="document.getElementById('modal').classList.remove('active')">&times;</span>
-    <img id="modalImg">
+
+<header class="top">
+  <div>
+    <h1>Cloud Photos</h1>
+    <div class="meta" id="meta">loading…</div>
   </div>
-<script>
-fetch('/local/cloud_photos/_image_list.json?t=' + Date.now())
-  .then(r => r.json())
-  .then(data => {
-    document.getElementById('count').textContent = data.count + ' photos';
-    const grid = document.getElementById('grid');
-    data.images.forEach(url => {
-      const div = document.createElement('div');
-      div.className = 'thumb';
-      const img = document.createElement('img');
-      img.src = url;
-      img.loading = 'lazy';
-      img.onclick = () => {
-        document.getElementById('modalImg').src = url;
-        document.getElementById('modal').classList.add('active');
-      };
-      div.appendChild(img);
-      grid.appendChild(div);
-    });
-  });
-document.getElementById('modal').onclick = (e) => {
-  if (e.target === document.getElementById('modal')) {
-    document.getElementById('modal').classList.remove('active');
+  <div class="actions">
+    <button class="btn" id="refresh" title="Sync new photos" aria-label="Refresh">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div id="gallery"></div>
+  <div class="empty" id="empty" style="display:none">No photos yet.</div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import PhotoSwipeLightbox from '/local/cloud_photos/vendor/photoswipe/photoswipe-lightbox.esm.min.js?v=1';
+
+const $ = (id) => document.getElementById(id);
+const refreshBtn = $('refresh');
+const galleryEl = $('gallery');
+const metaEl    = $('meta');
+const emptyEl   = $('empty');
+const toastEl   = $('toast');
+
+let lightbox = null;
+
+function toast(msg, ms=2000) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('show');
+  setTimeout(() => toastEl.classList.remove('show'), ms);
+}
+
+function monthLabel(group) {
+  // group is "YYYY-MM"
+  const [y, m] = group.split('-').map(Number);
+  if (!y || !m) return group;
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+}
+
+function bucketByMonth(photos) {
+  // photos are pre-sorted newest first by the generator
+  const groups = new Map();
+  for (const p of photos) {
+    if (!groups.has(p.group)) groups.set(p.group, []);
+    groups.get(p.group).push(p);
   }
-};
+  return [...groups.entries()];
+}
+
+async function loadImageDimensions(photo) {
+  // PhotoSwipe needs width/height before opening. We probe the thumbnail (small,
+  // cheap) and reuse the same ratio for the full image — PhotoSwipe auto-scales.
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => resolve({ w: 1200, h: 900 }); // fallback
+    img.src = photo.thumb;
+  });
+}
+
+async function render(data) {
+  galleryEl.innerHTML = '';
+  const photos = data.photos || [];
+  metaEl.textContent = photos.length
+    ? `${photos.length} photos · updated ${new Date(data.generated || Date.now()).toLocaleString()}`
+    : '';
+
+  if (!photos.length) {
+    emptyEl.style.display = '';
+    return;
+  }
+  emptyEl.style.display = 'none';
+
+  const groups = bucketByMonth(photos);
+  const psItems = []; // PhotoSwipe data source, sequential across all groups
+  let idx = 0;
+
+  for (const [group, items] of groups) {
+    const h = document.createElement('div');
+    h.className = 'group-header';
+    h.textContent = monthLabel(group);
+    galleryEl.appendChild(h);
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    galleryEl.appendChild(grid);
+
+    for (const p of items) {
+      const a = document.createElement('a');
+      a.className = 'tile';
+      a.href = p.full;
+      a.dataset.psIndex = idx;
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.alt = p.name;
+      img.src = p.thumb;
+      img.addEventListener('load', () => img.classList.add('loaded'));
+      a.appendChild(img);
+      grid.appendChild(a);
+
+      psItems.push({
+        src: p.full,
+        msrc: p.thumb,
+        alt: p.name,
+        // Width/height filled in lazily; PhotoSwipe accepts 0/0 and resizes
+        // once the image natural size is known (`adjustOnImageLoaded: true`
+        // is on by default in v5).
+        w: 0, h: 0,
+        _photo: p,
+      });
+      idx++;
+    }
+  }
+
+  // Tear down any prior lightbox before re-init (refresh cycle).
+  if (lightbox) { lightbox.destroy(); lightbox = null; }
+
+  lightbox = new PhotoSwipeLightbox({
+    gallery: '#gallery',
+    children: 'a.tile',
+    pswpModule: () => import('/local/cloud_photos/vendor/photoswipe/photoswipe.esm.min.js?v=1'),
+    // The gallery passes (event, src, item) — we already have everything in
+    // dataset, so just rely on the default which reads `href` for src.
+    showHideAnimationType: 'fade',
+    bgOpacity: 0.95,
+    paddingFn: () => ({ top: 30, bottom: 30, left: 0, right: 0 }),
+  });
+
+  // Resolve real image dimensions on the fly — PhotoSwipe calls itemData() for
+  // each opened slide. We override via `lazyLoadSlide` -> just provide w/h
+  // via the `contentLoad` lifecycle. v5 supports computing dims via the
+  // loaded image, so we don't strictly need pre-known dims.
+  lightbox.on('itemData', (e) => {
+    const a = e.itemData.element;
+    if (!a) return;
+    const idx = parseInt(a.dataset.psIndex, 10);
+    const data = psItems[idx];
+    if (data) {
+      e.itemData.src = data.src;
+      e.itemData.msrc = data.msrc;
+      e.itemData.alt = data.alt;
+      // width/height left at 0 — PhotoSwipe v5 will compute them from the
+      // loaded image (it has `adjustOnImageLoaded` behavior built-in).
+    }
+  });
+
+  lightbox.init();
+}
+
+async function fetchList() {
+  const r = await fetch('/local/cloud_photos/_image_list.json?t=' + Date.now(), { cache: 'no-store' });
+  if (!r.ok) throw new Error(`list http ${r.status}`);
+  return r.json();
+}
+
+async function refresh() {
+  refreshBtn.disabled = true;
+  refreshBtn.classList.add('spin');
+  try {
+    // The addon's /sync endpoint lives on its host_network port (8099 by
+    // default — see addon/config.yaml). We're on the HA origin (8123), so
+    // fire-and-forget with no-cors and trust the addon to do its thing.
+    // The addon does the icloudpd download + regenerate_image_list() —
+    // so by the time we re-fetch the JSON, new thumbs are already there.
+    const host = window.location.hostname;
+    try {
+      await fetch(`${window.location.protocol}//${host}:8099/sync`,
+                  { method: 'POST', mode: 'no-cors' });
+    } catch (_) { /* no-cors swallows the response anyway */ }
+
+    // The sync takes a few seconds; poll the list until count changes or we
+    // time out after 30s.
+    const before = await fetchList().catch(() => ({count: -1}));
+    let data = before;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      try {
+        data = await fetchList();
+        if (data.generated !== before.generated || data.count !== before.count) break;
+      } catch (_) { /* keep polling */ }
+    }
+    await render(data);
+    toast('Refreshed');
+  } catch (e) {
+    console.error('refresh failed', e);
+    toast('Refresh failed');
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.classList.remove('spin');
+  }
+}
+
+refreshBtn.addEventListener('click', () => refresh());
+
+// Initial load
+(async () => {
+  try {
+    const data = await fetchList();
+    await render(data);
+  } catch (e) {
+    console.error('initial load failed', e);
+    metaEl.textContent = 'failed to load — try refresh';
+  }
+})();
 </script>
 </body>
 </html>
