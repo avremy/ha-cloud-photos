@@ -1,6 +1,7 @@
 {
   "name": "Cloud Photos",
   "render_readme": true,
-  "homeassistant": "2024.1.0",
+  "homeassistant": "2024.3.0",
+  "content_in_root": false,
   "country": ["IL", "US"]
 }

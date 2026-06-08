@@ -1,0 +1,20 @@
+sync_now:
+  name: Sync now
+  description: >
+    Trigger the Cloud Photos add-on to fetch new photos from the configured
+    cloud provider using the cached session. Equivalent to clicking the
+    🔄 button on the gallery.
+
+reset_slideshow:
+  name: Reset slideshow
+  description: >
+    Wipe the local slideshow directory and re-download every photo in the
+    configured album from scratch. Use this only if the local cache has
+    drifted from the cloud album.
+
+regenerate_thumbnails:
+  name: Regenerate thumbnails
+  description: >
+    Rescan the photos directory, rebuild thumbnails (600px JPEG), and
+    refresh the _image_list.json that the gallery and slideshow card
+    consume. Safe to run after manually adding files to the photos dir.

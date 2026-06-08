@@ -1,0 +1,29 @@
+{
+  "title": "Cloud Photos",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Install Cloud Photos",
+        "description": "Found the **Cloud Photos** add-on (`{addon_slug}`, state: `{addon_state}`).\n\nInstalling this integration will:\n\n- Register the slideshow Lovelace card so any dashboard can use it\n- Add a **Cloud Photos** badge to your default dashboard linking to the gallery\n- Expose `cloud_photos.sync_now`, `cloud_photos.reset_slideshow`, and `cloud_photos.regenerate_thumbnails` services\n- Add `sensor.cloud_photos_last_sync` and `sensor.cloud_photos_sync_status`\n\nContinue?"
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Cloud Photos is already configured.",
+      "addon_not_installed": "The Cloud Photos add-on is not installed. Install it from Supervisor → Add-on Store first, then come back here."
+    }
+  },
+  "services": {
+    "sync_now": {
+      "name": "Sync now",
+      "description": "Fetch new photos from the configured cloud provider using the cached session."
+    },
+    "reset_slideshow": {
+      "name": "Reset slideshow",
+      "description": "Wipe the local slideshow directory and re-download every photo from scratch."
+    },
+    "regenerate_thumbnails": {
+      "name": "Regenerate thumbnails",
+      "description": "Rescan the photos dir, rebuild 600px thumbnails, and refresh _image_list.json."
+    }
+  }
+}

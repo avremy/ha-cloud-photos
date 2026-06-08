@@ -2,11 +2,12 @@
   "domain": "cloud_photos",
   "name": "Cloud Photos",
   "version": "0.1.0",
-  "documentation": "https://github.com/local/cloud-photos",
-  "issue_tracker": "https://github.com/local/cloud-photos/issues",
-  "codeowners": [],
-  "dependencies": [],
+  "documentation": "https://github.com/avremy/ha-cloud-photos",
+  "issue_tracker": "https://github.com/avremy/ha-cloud-photos/issues",
+  "codeowners": ["@avremy"],
+  "dependencies": ["http", "frontend", "hassio"],
   "requirements": [],
   "iot_class": "local_polling",
-  "config_flow": false
+  "config_flow": true,
+  "integration_type": "service"
 }

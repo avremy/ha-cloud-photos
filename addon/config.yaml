@@ -1,12 +1,12 @@
 name: Cloud Photos
-version: "0.2.0"
+version: "0.3.0"
 slug: cloud_photos
 description: Sync photos from cloud providers (iCloud today, more planned) and serve them as a Home Assistant slideshow + gallery.
 arch:
   - aarch64
   - amd64
   - armv7
-url: "https://github.com/local/cloud-photos"
+url: "https://github.com/avremy/ha-cloud-photos"
 startup: services
 boot: auto
 init: false

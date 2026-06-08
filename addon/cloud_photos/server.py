@@ -183,6 +183,24 @@ def run_update_all_job():
     finally:
         _job_running = None; _job_lock.release()
 
+def run_regenerate_thumbs_job():
+    """Rescan PHOTOS_DIR + rebuild thumbs + image list. No network I/O."""
+    if not _job_lock.acquire(blocking=False):
+        log("regenerate-thumbnails: busy"); return
+    global _job_running; _job_running = "regenerate-thumbnails"
+    try:
+        synclog("=" * 42)
+        synclog(f"Regenerate thumbnails started: {datetime.datetime.now()}")
+        synclog("=" * 42)
+        log("=== REGEN-THUMBS started ===")
+        rc = regenerate_image_list()
+        synclog(f"Regenerate thumbnails completed (rc={rc}): {datetime.datetime.now()}\n")
+        log(f"=== REGEN-THUMBS completed (rc={rc}) ===")
+    except Exception as e:
+        log(f"!! regenerate-thumbnails ERROR: {e}"); synclog(f"ERROR: {e}")
+    finally:
+        _job_running = None; _job_lock.release()
+
 def last_sync_status():
     """Parse sync.log and return the most recent run's outcome."""
     out = {
@@ -248,9 +266,10 @@ def last_sync_status():
     return out
 
 JOBS = {
-    "/sync":       ("sync",       run_sync_job),
-    "/reset":      ("reset",      run_reset_job),
-    "/update-all": ("update-all", run_update_all_job),
+    "/sync":                  ("sync",                  run_sync_job),
+    "/reset":                 ("reset",                 run_reset_job),
+    "/update-all":            ("update-all",            run_update_all_job),
+    "/regenerate-thumbnails": ("regenerate-thumbnails", run_regenerate_thumbs_job),
 }
 
 # ---- reverse proxy to icloudpd webui --------------------------------------
