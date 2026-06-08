@@ -43,6 +43,32 @@ Once enabled, the integration will:
   services that drive the add-on's REST API
 - Surface sensors for last-sync time, photo count, auth state
 
+## Image-list generation
+
+The add-on owns its own image-list pipeline now —
+`cloud_photos.jobs.generate_image_list` scans `/config/www/cloud_photos/photos/`,
+converts HEIC → JPG, generates `<name>_thumb.jpg` (600px wide, JPEG q85)
+alongside each original, and writes `_image_list.json` with both `full` and
+`thumb` URLs grouped by `YYYY-MM`.
+
+Run it ad-hoc:
+
+```bash
+docker exec addon_local_cloud_photos \
+  python3 -m cloud_photos.jobs.generate_image_list
+```
+
+The legacy `/config/scripts/generate_slideshow_yaml.py` on the live HA is
+NOT used anymore. See [`MIGRATION.md`](MIGRATION.md) for the runbook that
+retires it.
+
+## Cutover from `ha_task_api`
+
+If you're migrating an existing HA install away from the old `ha_task_api`
+add-on, follow [`MIGRATION.md`](MIGRATION.md). It covers the three URL
+swaps (slideshow card resource, gallery iframe url, photo storage path) and
+the rollback procedure.
+
 ## Installation
 
 ### Add-on (manual, until the repo is published)

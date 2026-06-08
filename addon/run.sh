@@ -24,7 +24,7 @@ if [ -f /data/options.json ]; then
   echo "[cloud-photos] icloud user=${ICLOUD_USERNAME:-MISSING} album=${ICLOUD_ALBUM:-MISSING} password=$([ -n "$ICLOUD_PASSWORD" ] && echo set || echo MISSING)"
 fi
 
-mkdir -p /config/www /config/.slideshow_triggers /config/www/slideshow /config/www/cloud_photos /config/.icloudpd_config
+mkdir -p /config/www /config/.slideshow_triggers /config/www/cloud_photos /config/www/cloud_photos/photos /config/.icloudpd_config
 
 cd /opt
 exec python3 -m cloud_photos.server

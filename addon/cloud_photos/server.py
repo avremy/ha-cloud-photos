@@ -44,18 +44,24 @@ from urllib.parse import urlparse
 from . import __version__
 from .providers import icloud as icloud_provider
 from .deploy import deploy as deploy_assets
+from .jobs import generate_image_list as gen_list
 
 PORT          = 8888
 BIND          = "127.0.0.1"
 INGRESS_PORT  = 8099
-SLIDESHOW_DIR = "/config/www/slideshow"
+WWW_DEPLOY_DIR = "/config/www/cloud_photos"
+PHOTOS_DIR    = os.path.join(WWW_DEPLOY_DIR, "photos")
+IMAGE_LIST    = os.path.join(WWW_DEPLOY_DIR, "_image_list.json")
 LOGFILE       = "/config/www/api.log"
-SYNC_LOG      = os.path.join(SLIDESHOW_DIR, "sync.log")
+SYNC_LOG      = os.path.join(WWW_DEPLOY_DIR, "sync.log")
 COOKIE_DIR    = "/config/.icloudpd_config"
 STATIC_DIR    = "/opt/static"
-WWW_DEPLOY_DIR = "/config/www/cloud_photos"
 
-RESET_KEEP = {"_image_list.json", "slideshow.html", "gallery.html", "sync.log"}
+# Back-compat alias — many call sites still refer to "the slideshow dir" but
+# we now stash photos under /config/www/cloud_photos/photos.
+SLIDESHOW_DIR = PHOTOS_DIR
+
+RESET_KEEP = set()  # photos dir only holds photos; nothing to keep on reset
 
 def env(k, d=""):
     return os.environ.get(k, d)
@@ -77,7 +83,7 @@ def log(msg):
 
 def synclog(msg):
     try:
-        os.makedirs(SLIDESHOW_DIR, exist_ok=True)
+        os.makedirs(WWW_DEPLOY_DIR, exist_ok=True)
         with open(SYNC_LOG, "a") as f:
             f.write(msg.rstrip() + "\n")
     except Exception as e:
@@ -97,20 +103,25 @@ def _run_log(cmd, env_=None):
 
 def cleanup_videos():
     n = 0
-    for f in os.listdir(SLIDESHOW_DIR):
+    if not os.path.isdir(PHOTOS_DIR):
+        return
+    for f in os.listdir(PHOTOS_DIR):
         if f.lower().endswith((".mov", ".mp4", ".m4v")):
-            try: os.remove(os.path.join(SLIDESHOW_DIR, f)); n += 1
+            try: os.remove(os.path.join(PHOTOS_DIR, f)); n += 1
             except OSError: pass
     if n: log(f"cleaned up {n} video file(s)")
 
 def regenerate_image_list():
-    return _run_log(["python3", "/config/scripts/generate_slideshow_yaml.py"])
+    """Scan PHOTOS_DIR, refresh thumbnails, write IMAGE_LIST. Returns rc."""
+    return gen_list.run(PHOTOS_DIR, IMAGE_LIST, synclog)
 
 def wipe_slideshow_files():
     n = 0
-    for f in os.listdir(SLIDESHOW_DIR):
+    if not os.path.isdir(PHOTOS_DIR):
+        return
+    for f in os.listdir(PHOTOS_DIR):
         if f in RESET_KEEP: continue
-        p = os.path.join(SLIDESHOW_DIR, f)
+        p = os.path.join(PHOTOS_DIR, f)
         try:
             if os.path.isfile(p) or os.path.islink(p): os.unlink(p); n += 1
             elif os.path.isdir(p): shutil.rmtree(p); n += 1
